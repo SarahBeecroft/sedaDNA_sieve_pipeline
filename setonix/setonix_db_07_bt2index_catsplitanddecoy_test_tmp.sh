@@ -1,9 +1,10 @@
 #!/bin/bash -l
 #SBATCH --job-name=bt2index_cat_fungiprotist_test
 # #SBATCH --mail-user=
-#SBATCH --mail-type=BEGIN,END,FAIL
-#SBATCH --cpus-per-task=4
-#SBATCH --mem=32G
+# #SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --cpus-per-task=16
+#SBATCH --ntasks=1
+#SBATCH --mem=96G
 #SBATCH --time=24:00:00
 #SBATCH --partition=work
 
@@ -20,16 +21,16 @@ TMP_FNA="${MYSCRATCH}/${SLURM_JOB_ID}/${PART}_with_decoy.fna"
 
 mkdir -p "$LOG_DIR" "${MYSCRATCH}/${SLURM_JOB_ID}"
 cd "$BASE"
-# -------- Trap: cleanup temp file and stop logging loop on any exit --------
-cleanup() {
-    kill "$MEM_LOG_PID" 2>/dev/null || true
-    wait  "$MEM_LOG_PID" 2>/dev/null || true
-    rm -f "$TMP_FNA"
-    rmdir "${MYSCRATCH}/${SLURM_JOB_ID}" 2>/dev/null || true
-    echo "$(date '+%Y-%m-%d %H:%M:%S') bowtie2-build exited" \
-        >> "${LOG_DIR}/${PART}_mem_log.txt"
-}
-trap cleanup EXIT
+## -------- Trap: cleanup temp file and stop logging loop on any exit --------
+#cleanup() {
+#    kill "$MEM_LOG_PID" 2>/dev/null || true
+#    wait  "$MEM_LOG_PID" 2>/dev/null || true
+#    rm -f "$TMP_FNA"
+#    rmdir "${MYSCRATCH}/${SLURM_JOB_ID}" 2>/dev/null || true
+#    echo "$(date '+%Y-%m-%d %H:%M:%S') bowtie2-build exited" \
+#        >> "${LOG_DIR}/${PART}_mem_log.txt"
+#}
+#trap cleanup EXIT
 
 # -------- Start memory + I/O logging in the background --------
 #while true; do
@@ -69,7 +70,5 @@ cat "${FNA_DIR}/${PART}.fasta.fna" "${DECOY}" > "$TMP_FNA"
 echo "$(date '+%Y-%m-%d %H:%M:%S') Starting bowtie2-build..." \
     >> "${LOG_DIR}/${PART}_mem_log.txt"
 
-bowtie2-build "$TMP_FNA" "${IDX_DIR}/${PART}"
-
-module purge
-# EXIT trap fires here: kills logging loop and deletes temp file
+# Most basic option for speedup is enabling multithreading with --threads. 
+srun -c $SLURM_CPUS_PER_TASK -N 1 -n 1 bowtie2-build -p $SLURM_CPUS_PER_TASK "$TMP_FNA" "${IDX_DIR}/${PART}"

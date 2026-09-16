@@ -3,6 +3,7 @@
 # #SBATCH --mail-user=
 # #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --cpus-per-task=16
+#SBATCH --ntasks=1
 #SBATCH --mem=96G
 #SBATCH --time=24:00:00
 #SBATCH --partition=work
@@ -31,8 +32,8 @@ index_base=index_part_${number}
 
 
 # --- running index ---
-# Most basic option for speedup is enabling multithreading with --threads. 
-srun -c $SLURM_CPUS_PER_TASK -N 1 -n 1 bowtie2-build -p 8 $ref_in $index_base
+# Most basic option for speedup is enabling multithreading with -p
+srun -c $SLURM_CPUS_PER_TASK -N 1 -n 1 bowtie2-build -p $SLURM_CPUS_PER_TASK $ref_in $index_base
 
 # Potentially useful options for large databases include --noauto, --bmaxdivn, and --dcv.
 #The --noauto option disables automatic parameter tuning, which can be slow for large databases. The --bmaxdivn and --dcv options are advanced parameters that can help with large databases, but they should be used with caution and understanding of their effects.
